@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar">
+  <head>
+    <meta charset="UTF-8" />
+    <title>مولّد الشهادات</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>📄 توليد شهادات PDF</h1>
+      <label>📊 ملف Excel:</label>
+      <input type="file" id="excelInput" accept=".xlsx" required />
+
+      <label>🖼️ قالب الشهادة (صورة):</label>
+      <input type="file" id="templateInput" accept="image/*" required />
+
+      <button id="generateBtn">✨ توليد الشهادات</button>
+      <div id="status"></div>
+    </div>
+
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- JSZip for zipping files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+      const excelInput = document.getElementById("excelInput");
+      const templateInput = document.getElementById("templateInput");
+      const generateBtn = document.getElementById("generateBtn");
+      const statusDiv = document.getElementById("status");
+
+      let names = [];
+      let templateImg = null;
+
+      excelInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const range = XLSX.utils.decode_range(sheet["!ref"]);
+          names = [];
+          for (let rowNum = range.s.r + 1; rowNum <= range.e.r; ++rowNum) {
+            // skip header
+            const cellAddress = { c: range.s.c, r: rowNum };
+            const cellRef = XLSX.utils.encode_cell(cellAddress);
+            const cell = sheet[cellRef];
+            if (cell && cell.v) names.push(cell.v);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+
+      templateInput.addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          templateImg = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      generateBtn.addEventListener("click", async function (e) {
+        e.preventDefault();
+        if (!names.length || !templateImg) {
+          statusDiv.textContent = "يرجى رفع ملف Excel وقالب الصورة أولاً.";
+          return;
+        }
+        statusDiv.textContent = `جاري توليد الشهادات... سيتم إنشاء ${names.length} شهادة.`;
+        const { jsPDF } = window.jspdf;
+        const zip = new JSZip();
+        const nameCounts = {};
+        for (let name of names) {
+          let safeName = String(name).replace(/[^\w\u0600-\u06FF]/g, "_");
+          if (!nameCounts[safeName]) {
+            nameCounts[safeName] = 1;
+          } else {
+            nameCounts[safeName]++;
+            safeName = `${safeName}_${nameCounts[safeName]}`;
+          }
+          const pdf = new jsPDF({
+            orientation: "landscape",
+            unit: "mm",
+            format: "a4",
+          });
+          pdf.addImage(templateImg, "JPEG", 0, 0, 297, 210);
+          pdf.setFont("Arial", "bold");
+          pdf.setFontSize(24);
+          pdf.text(name, 150, 105, { align: "center" });
+          const pdfBlob = pdf.output("blob");
+          zip.file(`${safeName}.pdf`, pdfBlob);
+        }
+        statusDiv.textContent = "جاري ضغط الشهادات...";
+        const zipContent = await zip.generateAsync({ type: "blob" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(zipContent);
+        a.download = "certificates.zip";
+        a.click();
+        statusDiv.textContent = "تم توليد الشهادات!";
+      });
+    </script>
+  </body>
+</html>
