@@ -14,6 +14,67 @@
       <label>🖼️ قالب الشهادة (صورة):</label>
       <input type="file" id="templateInput" accept="image/*" required />
 
+      <div style="margin: 18px 0; text-align: left">
+        <label for="xPos">📍 موضع الاسم (أفقي):</label>
+        <input
+          type="number"
+          id="xPos"
+          min="0"
+          max="297"
+          value="150"
+          style="width: 80px; margin-right: 12px"
+        />
+        <label for="yPos">📍 موضع الاسم (رأسي):</label>
+        <input
+          type="number"
+          id="yPos"
+          min="0"
+          max="210"
+          value="105"
+          style="width: 80px"
+        />
+      </div>
+      <div
+        id="previewContainer"
+        style="margin: 24px auto; text-align: center; display: none"
+      >
+        <div
+          id="previewWrapper"
+          style="display: inline-block; position: relative"
+        >
+          <img
+            id="templatePreview"
+            src=""
+            alt="Certificate Template Preview"
+            style="
+              display: block;
+              border-radius: 12px;
+              box-shadow: 0 2px 8px #0001;
+              max-width: 100%;
+              height: auto;
+            "
+          />
+          <div
+            id="nameOverlay"
+            style="
+              position: absolute;
+              color: #222;
+              font-family: Arial, sans-serif;
+              font-size: 24px;
+              font-weight: bold;
+              pointer-events: none;
+              text-shadow: 0 2px 8px #fff8;
+              background: rgba(255, 255, 255, 0.1);
+              padding: 2px 16px;
+              border-radius: 6px;
+              white-space: nowrap;
+              left: 0;
+              top: 0;
+              transform: translate(-50%, -50%);
+            "
+          ></div>
+        </div>
+      </div>
       <button id="generateBtn">✨ توليد الشهادات</button>
       <div id="status"></div>
     </div>
@@ -35,20 +96,29 @@
 
       excelInput.addEventListener("change", function (e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+          statusDiv.textContent = "لم يتم اختيار ملف Excel.";
+          return;
+        }
         const reader = new FileReader();
         reader.onload = function (evt) {
-          const data = new Uint8Array(evt.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const range = XLSX.utils.decode_range(sheet["!ref"]);
-          names = [];
-          for (let rowNum = range.s.r + 1; rowNum <= range.e.r; ++rowNum) {
-            // skip header
-            const cellAddress = { c: range.s.c, r: rowNum };
-            const cellRef = XLSX.utils.encode_cell(cellAddress);
-            const cell = sheet[cellRef];
-            if (cell && cell.v) names.push(cell.v);
+          try {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const range = XLSX.utils.decode_range(sheet["!ref"]);
+            names = [];
+            for (let rowNum = range.s.r + 1; rowNum <= range.e.r; ++rowNum) {
+              // skip header
+              const cellAddress = { c: range.s.c, r: rowNum };
+              const cellRef = XLSX.utils.encode_cell(cellAddress);
+              const cell = sheet[cellRef];
+              if (cell && cell.v) names.push(cell.v);
+            }
+            statusDiv.textContent = `تم تحميل ${names.length} اسم من ملف Excel.`;
+          } catch (err) {
+            statusDiv.textContent = "خطأ في قراءة ملف Excel: " + err;
+            console.error("Excel error:", err);
           }
         };
         reader.readAsArrayBuffer(file);
@@ -56,12 +126,68 @@
 
       templateInput.addEventListener("change", function (e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+          statusDiv.textContent = "لم يتم اختيار صورة القالب.";
+          return;
+        }
         const reader = new FileReader();
         reader.onload = function (evt) {
-          templateImg = evt.target.result;
+          try {
+            templateImg = evt.target.result;
+            statusDiv.textContent = "تم تحميل صورة القالب بنجاح.";
+            // Show preview
+            document.getElementById("previewContainer").style.display = "block";
+            document.getElementById("templatePreview").src = templateImg;
+            updateNameOverlay();
+          } catch (err) {
+            statusDiv.textContent = "خطأ في تحميل صورة القالب: " + err;
+            console.error("Image error:", err);
+          }
         };
         reader.readAsDataURL(file);
+      });
+      // Live preview logic
+      function updateNameOverlay() {
+        const preview = document.getElementById("templatePreview");
+        const overlay = document.getElementById("nameOverlay");
+        const wrapper = document.getElementById("previewWrapper");
+        const x = parseFloat(document.getElementById("xPos").value) || 150;
+        const y = parseFloat(document.getElementById("yPos").value) || 105;
+        const name = names.length ? names[0] : "اسم المتدرب";
+        if (!preview.complete || !preview.naturalWidth) {
+          overlay.style.display = "none";
+          return;
+        }
+        overlay.style.display = "block";
+        // Get actual rendered image size
+        const imgW = preview.width;
+        const imgH = preview.height;
+        const pxPerMmX = imgW / 297;
+        const pxPerMmY = imgH / 210;
+        overlay.textContent = name;
+        overlay.style.left = x * pxPerMmX + "px";
+        overlay.style.top = y * pxPerMmY + "px";
+        // Calculate font size so 24px in PDF matches preview
+        // PDF A4 landscape: 297mm wide, jsPDF default is 72dpi, so 1mm ≈ 2.83465px in PDF
+        // If preview image is imgW px wide, then font size in preview = 24px * (imgW / (297 * 2.83465))
+        const pdfPxPerMm = 2.83465;
+        const fontScale = imgW / (297 * pdfPxPerMm);
+        overlay.style.fontSize = "10.8px";
+        overlay.style.fontFamily = "Arial, sans-serif";
+        overlay.style.fontWeight = "bold";
+      }
+
+      document
+        .getElementById("xPos")
+        .addEventListener("input", updateNameOverlay);
+      document
+        .getElementById("yPos")
+        .addEventListener("input", updateNameOverlay);
+      document
+        .getElementById("templatePreview")
+        .addEventListener("load", updateNameOverlay);
+      excelInput.addEventListener("change", function () {
+        setTimeout(updateNameOverlay, 500);
       });
 
       generateBtn.addEventListener("click", async function (e) {
@@ -70,37 +196,44 @@
           statusDiv.textContent = "يرجى رفع ملف Excel وقالب الصورة أولاً.";
           return;
         }
+        const xPos = parseFloat(document.getElementById("xPos").value) || 150;
+        const yPos = parseFloat(document.getElementById("yPos").value) || 105;
         statusDiv.textContent = `جاري توليد الشهادات... سيتم إنشاء ${names.length} شهادة.`;
-        const { jsPDF } = window.jspdf;
-        const zip = new JSZip();
-        const nameCounts = {};
-        for (let name of names) {
-          let safeName = String(name).replace(/[^\w\u0600-\u06FF]/g, "_");
-          if (!nameCounts[safeName]) {
-            nameCounts[safeName] = 1;
-          } else {
-            nameCounts[safeName]++;
-            safeName = `${safeName}_${nameCounts[safeName]}`;
+        try {
+          const { jsPDF } = window.jspdf;
+          const zip = new JSZip();
+          const nameCounts = {};
+          for (let name of names) {
+            let safeName = String(name).replace(/[^\u0000-\u06FF\w]/g, "_");
+            if (!nameCounts[safeName]) {
+              nameCounts[safeName] = 1;
+            } else {
+              nameCounts[safeName]++;
+              safeName = `${safeName}_${nameCounts[safeName]}`;
+            }
+            const pdf = new jsPDF({
+              orientation: "landscape",
+              unit: "mm",
+              format: "a4",
+            });
+            pdf.addImage(templateImg, "JPEG", 0, 0, 297, 210);
+            pdf.setFont("Arial", "bold");
+            pdf.setFontSize(24);
+            pdf.text(name, xPos, yPos, { align: "center" });
+            const pdfBlob = pdf.output("blob");
+            zip.file(`${safeName}.pdf`, pdfBlob);
           }
-          const pdf = new jsPDF({
-            orientation: "landscape",
-            unit: "mm",
-            format: "a4",
-          });
-          pdf.addImage(templateImg, "JPEG", 0, 0, 297, 210);
-          pdf.setFont("Arial", "bold");
-          pdf.setFontSize(24);
-          pdf.text(name, 150, 105, { align: "center" });
-          const pdfBlob = pdf.output("blob");
-          zip.file(`${safeName}.pdf`, pdfBlob);
+          statusDiv.textContent = "جاري ضغط الشهادات...";
+          const zipContent = await zip.generateAsync({ type: "blob" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(zipContent);
+          a.download = "certificates.zip";
+          a.click();
+          statusDiv.textContent = "تم توليد الشهادات!";
+        } catch (err) {
+          statusDiv.textContent = "حدث خطأ أثناء توليد الشهادات: " + err;
+          console.error("PDF error:", err);
         }
-        statusDiv.textContent = "جاري ضغط الشهادات...";
-        const zipContent = await zip.generateAsync({ type: "blob" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(zipContent);
-        a.download = "certificates.zip";
-        a.click();
-        statusDiv.textContent = "تم توليد الشهادات!";
       });
     </script>
   </body>
