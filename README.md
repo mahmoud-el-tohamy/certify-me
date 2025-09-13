@@ -76,26 +76,6 @@ npx http-server . -p 3000
    * Edit X, Y, font size, and alignment inputs for precision.
 5. Click "Generate Certificates" to create PDFs and download them as a ZIP.
 
-### Example UI elements to include in your HTML
-
-```html
-<!-- file inputs -->
-<input type="file" id="excelInput" accept=".xlsx,.xls,.csv" />
-<input type="file" id="templateInput" accept="image/png, image/jpeg" />
-
-<!-- preview area -->
-<div id="preview">
-  <img id="templateImage" src="" alt="template" />
-  <div id="nameOverlay" contenteditable="true">اسم المتلقي</div>
-</div>
-
-<!-- controls -->
-<input id="posX" type="number" />
-<input id="posY" type="number" />
-<input id="fontSize" type="number" />
-<button id="generateBtn">Generate Certificates</button>
-```
-
 ---
 
 ## 📄 Excel format / تنسيق ملف Excel
