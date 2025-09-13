@@ -16,7 +16,6 @@ A lightweight web app to instantly generate PDF certificates from a template ima
 * [Excel format / تنسيق ملف Excel](#-excel-format--تنسيق-ملف-excel)
 * [Customization / التخصيص](#-customization--التخصيص)
 * [Technologies / التقنيات المستخدمة](#-technologies--التقنيات-المستخدمة)
-* [Contributing / المساهمة](#-contributing--المساهمة)
 * [License / الرخصة](#-license--الرخصة)
 
 ---
