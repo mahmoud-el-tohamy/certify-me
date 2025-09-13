@@ -1,3 +1,42 @@
+/* Almarai font classes for Arabic */
+.almarai-light {
+  font-family: "Almarai", sans-serif;
+  font-weight: 300;
+  font-style: normal;
+}
+.almarai-regular {
+  font-family: "Almarai", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+.almarai-bold {
+  font-family: "Almarai", sans-serif;
+  font-weight: 700;
+  font-style: normal;
+}
+.almarai-extrabold {
+  font-family: "Almarai", sans-serif;
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* Improved position input styling */
+.pos-input {
+  width: 90px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #3b82f6;
+  background: #f3f4f6;
+  font-size: 1.1rem;
+  font-family: "Almarai", Arial, sans-serif;
+  font-weight: 700;
+  color: #1e293b;
+  outline: none;
+  transition: border 0.2s;
+}
+.pos-input:focus {
+  border: 2px solid #6366f1;
+}
 body {
   font-family: "Cairo", Arial, sans-serif;
   background: linear-gradient(135deg, #f9f9f9 0%, #e0e7ff 100%);
@@ -8,7 +47,7 @@ body {
 .container {
   background: #fff;
   max-width: 420px;
-  margin: 60px auto 0 auto;
+  margin: 60px auto 60px auto;
   border-radius: 18px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   padding: 32px 28px 24px 28px;
